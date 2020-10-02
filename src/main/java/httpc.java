@@ -4,19 +4,17 @@ import java.net.Socket;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.Hashtable;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class httpc {
 
-    public int url_index;
     public boolean is_verbose = false;
     public boolean has_headers = false;
     public boolean has_file_data = false;
     public boolean has_inline_data = false;
     public String host = "";
     public int portNumber;
-    public String responseStatusLine;
+    public int responseStatusCode;
+    public String responseStatus;
     Hashtable<String, String> post_data = new Hashtable<String, String>(); //will be used for post inline data key:value pairs
 
     public static void main(String[] args) {
@@ -29,10 +27,10 @@ public class httpc {
     }
 
     public void initApp(String[] args){
-        this.is_verbose = Arrays.stream(args).anyMatch("-v"::equals);
-        this.has_headers = Arrays.stream(args).anyMatch("-h"::equals);
-        this.has_inline_data = Arrays.stream(args).anyMatch("-d"::equals);
-        this.has_file_data = Arrays.stream(args).anyMatch("-f"::equals);
+        this.is_verbose = Arrays.asList(args).contains("-v");
+        this.has_headers = Arrays.asList(args).contains("-h");
+        this.has_inline_data = Arrays.asList(args).contains("-d");
+        this.has_file_data = Arrays.asList(args).contains("-f");
 
         String first_arg = args[0];  //For now it's the first arg, will need to change when we use help arg
 
@@ -116,8 +114,11 @@ public class httpc {
         try{
             while ((responseLine = reader.readLine()) != null) {
 
-                if(responseLine.startsWith("HTTP"))
-                    this.responseStatusLine = responseLine;  //Keep this for now, later we can test the status code
+                if(responseLine.startsWith("HTTP")){
+                    this.responseStatusCode = Integer.parseInt(responseLine.split("\\s+")[1]);
+                    this.responseStatus = responseLine.substring(responseLine.indexOf(Integer.toString(this.responseStatusCode))+4);
+                    checkResponseError();
+                }
 
                 if(responseLine.isEmpty())  //empty line separates the content from the headers
                     response_content = true;
@@ -132,6 +133,13 @@ public class httpc {
         }catch(Exception e){
             e.printStackTrace();
         }
+    }
+
+    public void checkResponseError(){
+        if(this.responseStatusCode >= 400 && this.responseStatusCode < 500)
+            System.out.println("\nClient side error\nStatus Code: " + this.responseStatusCode + "\nStatus: " + this.responseStatus + "\n");
+        else if(this.responseStatusCode > 500)
+            System.out.println("\nServer side error\nStatus Code: " + this.responseStatusCode + "\nStatus: " + this.responseStatus + "\n");
     }
 
     public static void post_request(String[] args){
