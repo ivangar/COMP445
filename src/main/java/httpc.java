@@ -16,6 +16,9 @@ public class httpc {
     private int portNumber;
     private int responseStatusCode;
     private String responseStatus;
+    private int count_v = 0;
+    private int count_d = 0;
+    private int count_f = 0;
     private List<String> requestHeaders = new ArrayList<String>();
 
     public static void main(String[] args) {
@@ -32,6 +35,9 @@ public class httpc {
         this.has_headers = Arrays.asList(args).contains("-h");
         this.has_inline_data = Arrays.asList(args).contains("-d");
         this.has_file_data = Arrays.asList(args).contains("-f");
+        this.count_v = count(args, "-v");
+        this.count_d = count(args, "-d");
+        this.count_f = count(args, "-f");
 
         String first_arg = args[0];  //For now it's the first arg, will need to change when we use help arg
 
@@ -74,7 +80,6 @@ public class httpc {
     }
 
     // Need to include :
-    // When there is more than one -v/-d/-f <- can make another function that is counting this but I want to ask you that there is a pre-built function for this.
     // Check -h has key and value pair ALREADY DONE
     // Check consecutive -h -h /.... ALREADY DONE
     // When there is no url
@@ -87,14 +92,14 @@ public class httpc {
         }
         // print httpc help get
         if(args[0].equalsIgnoreCase("get")){
-            if(has_file_data || has_inline_data){
+            if((has_file_data || has_inline_data) || count_v > 1){
                 help_get();
                 System.exit(0);
             }
         }
         // print httpc help post
         if(args[0].equalsIgnoreCase("post")){
-            if(has_file_data && has_inline_data){
+            if((has_file_data && has_inline_data) || count_v > 1 || count_d > 1 || count_f > 1){
                 help_post();
                 System.exit(0);
             }
@@ -268,6 +273,22 @@ public class httpc {
         }
 
     }
+
+
+    // Count how many how many -v/-h/-d are in the command.
+    private int count(String[] args, String command){
+
+        int total = 0;
+
+        for(String arg: args){
+            if(arg.equalsIgnoreCase(command)) {
+                total++;
+            }
+        }
+
+        return total;
+    }
+
 
     private boolean validateHeaders(String[] args){
 
