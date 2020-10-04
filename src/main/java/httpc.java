@@ -80,7 +80,6 @@ public class httpc {
     }
 
     // Need to include :
-    // When there is more than one -v/-d/-f ALREADY DONE
     // Check -h has key and value pair ALREADY DONE
     // Check consecutive -h -h /.... ALREADY DONE
     // When there is no url
@@ -275,6 +274,7 @@ public class httpc {
 
     }
 
+
     // Count how many how many -v/-h/-d are in the command.
     private int count(String[] args, String command){
 
@@ -288,6 +288,7 @@ public class httpc {
 
         return total;
     }
+
 
     private boolean validateHeaders(String[] args){
 
