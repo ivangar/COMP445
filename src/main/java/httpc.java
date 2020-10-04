@@ -2,20 +2,24 @@ import java.io.*;
 import java.net.MalformedURLException;
 import java.net.Socket;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Hashtable;
+import java.util.List;
 
 public class httpc {
 
-    public boolean is_verbose = false;
-    public boolean has_headers = false;
-    public boolean has_file_data = false;
-    public boolean has_inline_data = false;
-    public String host = "";
-    public int portNumber;
-    public int responseStatusCode;
-    public String responseStatus;
-    Hashtable<String, String> post_data = new Hashtable<String, String>(); //will be used for post inline data key:value pairs
+    private boolean is_verbose = false;
+    private boolean has_headers = false;
+    private boolean has_file_data = false;
+    private boolean has_inline_data = false;
+    private String host = "";
+    private int portNumber;
+    private int responseStatusCode;
+    private String responseStatus;
+    private int count_v = 0;
+    private int count_d = 0;
+    private int count_f = 0;
+    private List<String> requestHeaders = new ArrayList<String>();
 
     public static void main(String[] args) {
 
@@ -26,11 +30,14 @@ public class httpc {
 
     }
 
-    public void initApp(String[] args){
+    private void initApp(String[] args){
         this.is_verbose = Arrays.asList(args).contains("-v");
         this.has_headers = Arrays.asList(args).contains("-h");
         this.has_inline_data = Arrays.asList(args).contains("-d");
         this.has_file_data = Arrays.asList(args).contains("-f");
+        this.count_v = count(args, "-v");
+        this.count_d = count(args, "-d");
+        this.count_f = count(args, "-f");
 
         String first_arg = args[0];  //For now it's the first arg, will need to change when we use help arg
 
@@ -73,9 +80,9 @@ public class httpc {
     }
 
     // Need to include :
-    // When there is more than one -v/-d/-f <- can make another function that is counting this but I want to ask you that there is a pre-built function for this.
-    // Check -h has key and value pair
-    // Check consecutive -h -h /....
+    // When there is more than one -v/-d/-f ALREADY DONE
+    // Check -h has key and value pair ALREADY DONE
+    // Check consecutive -h -h /.... ALREADY DONE
     // When there is no url
     private void wrong_cmd(String[] args){
 
@@ -86,22 +93,29 @@ public class httpc {
         }
         // print httpc help get
         if(args[0].equalsIgnoreCase("get")){
-            if(has_file_data || has_inline_data){
+            if((has_file_data || has_inline_data) || count_v > 1){
                 help_get();
                 System.exit(0);
             }
         }
         // print httpc help post
         if(args[0].equalsIgnoreCase("post")){
-            if(has_file_data && has_inline_data){
+            if((has_file_data && has_inline_data) || count_v > 1 || count_d > 1 || count_f > 1){
                 help_post();
                 System.exit(0);
             }
         }
 
+        if(!validateHeaders(args))
+        {
+            System.out.println("\nERROR \nInvalid httpc Request header syntax, please check the documentation\n\n");
+            help_msg();
+            System.exit(0);
+        }
+
     }
 
-    public void help_msg(){
+    private void help_msg(){
         System.out.println("httpc is a curl-like application but supports HTTP protocol only.");
         System.out.println("Usage:");
         System.out.println("    httpc command [arguments]");
@@ -111,13 +125,13 @@ public class httpc {
         System.out.println("    help    prints this screen.");
         System.out.println("Use \"httpc help [command]\" for more information about a command.");
     }
-    public void help_get(){
+    private void help_get(){
         System.out.println("usage: httpc get [-v] [-h key:value] URL");
         System.out.println("Get executes a HTTP GET request for a given URL.");
         System.out.println("    -v             Prints the detail of the response such as protocol, status, and headers.");
         System.out.println("    -h key:value   Associates headers to HTTP Request with the format 'key:value'.");
     }
-    public void help_post(){
+    private void help_post(){
         System.out.println("usage: httpc post [-v] [-h key:value] [-d inline-data] [-f file] URL");
         System.out.println("Post executes a HTTP POST request for a given URL with inline data or from file.");
         System.out.println("    -v             Prints the detail of the response such as protocol, status, and headers.");
@@ -127,7 +141,7 @@ public class httpc {
         System.out.println("Either [-d] or [-f] can be used but not both.");
     }
 
-    public void get_request(String[] args) throws IOException {
+    private void get_request(String[] args) throws IOException {
 
         try{
             URL request_url = new URL(args[args.length-1]);  //I checked in curl documentation, the url is always the last argument
@@ -144,7 +158,11 @@ public class httpc {
 
             //Check for all the headers passed from console
             if(this.has_headers)
-                printRequestHeaders(args, writer);
+                printRequestHeaders(writer);
+            else {
+                writer.println("User-Agent:COMP445");
+                writer.println("Accept-Language:en-US");
+            }
 
             writer.println();
 
@@ -161,7 +179,7 @@ public class httpc {
 
     }
 
-    public void post_request(String[] args) throws IOException{
+    private void post_request(String[] args) throws IOException{
 
         try{
             URL request_url = new URL(args[args.length-1]);  //I checked in curl documentation, the url is always the last argument
@@ -180,7 +198,12 @@ public class httpc {
 
             //Check for all the headers passed from console
             if(this.has_headers)
-                printRequestHeaders(args, writer);
+                printRequestHeaders(writer);
+            else {
+                writer.println("User-Agent:COMP445");
+                writer.println("Accept-Language:en-US");
+            }
+
             writer.println();
 
             //print data from the command
@@ -244,23 +267,59 @@ public class httpc {
     }
 
 
-    private void printRequestHeaders(String[] args, PrintWriter writer){
+    private void printRequestHeaders(PrintWriter writer){
+
+        for (String header : this.requestHeaders) {
+            writer.println(header);
+        }
+
+    }
+
+    // Count how many how many -v/-h/-d are in the command.
+    private int count(String[] args, String command){
+
+        int total = 0;
+
+        for(String arg: args){
+            if(arg.equalsIgnoreCase(command)) {
+                total++;
+            }
+        }
+
+        return total;
+    }
+
+    private boolean validateHeaders(String[] args){
 
         boolean header_line = false;
 
-        //You can pass multiple headers
         for (String arg : args) {
-            if(arg.equalsIgnoreCase("-h")){
+            //check it's -h and we don't have two or more -h consecutive
+            if(arg.equalsIgnoreCase("-h") && !header_line){
                 header_line = true;
                 continue;
             }
 
             if(header_line){
-                writer.println(arg);
+                if(!arg.contains(":"))
+                    return false;
+
+                String[] keyvalues = arg.split(":");
+
+                if(keyvalues.length != 2)
+                    return false;
+
+                if(keyvalues.length == 2)
+                    if(keyvalues[0].isEmpty() || keyvalues[1].isEmpty())
+                        return false;
+
+                //adding header to array list
+                this.requestHeaders.add(arg);
                 header_line = false;
             }
         }
 
+        return true;
     }
 
     private void printHttpResponse(BufferedReader reader) throws IOException{
@@ -294,7 +353,7 @@ public class httpc {
         }
     }
 
-    public void checkResponseError(){
+    private void checkResponseError(){
         if(this.responseStatusCode >= 400 && this.responseStatusCode < 500)
             System.out.println("\nClient side error\nStatus Code: " + this.responseStatusCode + "\nStatus: " + this.responseStatus + "\n");
         else if(this.responseStatusCode > 500)
