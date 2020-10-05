@@ -41,13 +41,6 @@ public class CmdValidation {
             }
         }
 
-        if(!validateHeaders(args))
-        {
-            System.out.println("\nERROR \nInvalid httpc Request header syntax, please check the documentation\n\n");
-            help_msg();
-            System.exit(0);
-        }
-
     }
 
     public void help_msg(){
@@ -90,35 +83,19 @@ public class CmdValidation {
         return total;
     }
 
-    private boolean validateHeaders(String[] args){
+    public boolean validateHeaders(String header){
 
-        boolean header_line = false;
+        if(!header.contains(":"))
+            return false;
 
-        for (String arg : args) {
-            //check it's -h and we don't have two or more -h consecutive
-            if(arg.equalsIgnoreCase("-h") && !header_line){
-                header_line = true;
-                continue;
-            }
+        String[] keyvalues = header.split(":");
 
-            if(header_line){
-                if(!arg.contains(":"))
-                    return false;
+        if(keyvalues.length != 2)
+            return false;
 
-                String[] keyvalues = arg.split(":");
-
-                if(keyvalues.length != 2)
-                    return false;
-
-                if(keyvalues.length == 2)
-                    if(keyvalues[0].isEmpty() || keyvalues[1].isEmpty())
-                        return false;
-
-                //adding header to array list
-                this.requestHeaders.add(arg);
-                header_line = false;
-            }
-        }
+        if(keyvalues.length == 2)
+            if(keyvalues[0].isEmpty() || keyvalues[1].isEmpty())
+                return false;
 
         return true;
     }

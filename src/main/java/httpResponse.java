@@ -1,28 +1,14 @@
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.util.Arrays;
-import java.util.List;
 
 public class httpResponse {
     private boolean is_verbose;
     private int responseStatusCode;
     private String responseStatus;
-    private List<String> requestHeaders ;
-    CmdValidation cmd_validation;
 
     public httpResponse(String[] args){
         this.is_verbose = Arrays.asList(args).contains("-v");
-        this.cmd_validation = new CmdValidation(args);
-        this.requestHeaders = cmd_validation.requestHeaders;
-    }
-
-    public void printRequestHeaders(PrintWriter writer){
-
-        for (String header : this.requestHeaders) {
-            writer.println(header);
-        }
-
     }
 
     public void printHttpResponse(BufferedReader reader) throws IOException {
