@@ -1,5 +1,4 @@
 import java.io.*;
-import java.net.MalformedURLException;
 import java.net.Socket;
 import java.net.URL;
 import java.util.ArrayList;
@@ -15,15 +14,18 @@ public class httpRequest {
     private URL request_url;
     private Socket socket;
     private PrintWriter writer;
-    private BufferedReader reader;
+    public BufferedReader reader;
     private String request_URI;
     private boolean is_verbose = false;
     private boolean has_headers = false;
     private boolean has_file_data = false;
     private boolean has_inline_data = false;
     private List<String> requestHeaders = new ArrayList<String>();
+    public CmdValidation cmd_validation;
+    public httpResponse response;
 
-    public httpRequest(String[] args){
+    public httpRequest(String[] args, CmdValidation cmd_validation){
+        this.cmd_validation = cmd_validation;
         setArgs(args);
         sendRequest();
     }
@@ -65,7 +67,7 @@ public class httpRequest {
             this.writer = new PrintWriter(socket.getOutputStream(), true);
             this.reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             this.request_URI = request_url.getFile();  //gets the path + query if there is one
-
+            this.response = new httpResponse(this.args);
         }catch(Exception e){
             e.printStackTrace();
         }
@@ -80,6 +82,8 @@ public class httpRequest {
     }
 
     private void get_request() throws IOException{
+
+
         this.writer.println("GET " + this.request_URI + " HTTP/1.1");
         this.writer.println("Host: " + this.host);
         this.writer.println("Connection: close");  //important to close the connection with server after receiving the response
@@ -94,10 +98,7 @@ public class httpRequest {
 
         this.writer.println();
 
-        //Print response from Server
-        //Here we make an httpResponse object and call it passing reader and args
-        //For now to test it works I leave it here
-        printHttpResponse();
+        this.response.printHttpResponse(reader);
 
     }
 
@@ -126,7 +127,7 @@ public class httpRequest {
         }
 
         //Print response from Server
-        printHttpResponse();
+        this.response.printHttpResponse(reader);
 
     }
 
@@ -185,8 +186,12 @@ public class httpRequest {
             }
 
             if(header_line){
-                //From here calling validate class to validate headers
-                //like this  validateObject.validateHeaders();
+                if(!cmd_validation.validateHeaders(arg))
+                {
+                    System.out.println("\nERROR \nInvalid httpc Request header syntax, please check the documentation\n\n");
+                    cmd_validation.help_msg();
+                    System.exit(0);
+                }
 
                 //adding header to array list
                 this.requestHeaders.add(arg);
@@ -202,31 +207,4 @@ public class httpRequest {
         }
     }
 
-
-    //This will be handled by httpResponse class
-    //But for now for testing I leave it like that
-    private void printHttpResponse() throws IOException{
-
-        String responseLine; //response from server
-        boolean response_content = false;  //body from response
-
-        System.out.println("\n---------------------- Http Server Response ----------------------------\n");
-
-        try{
-            while ((responseLine = this.reader.readLine()) != null) {
-
-                if(responseLine.isEmpty())  //empty line separates the content from the headers
-                    response_content = true;
-
-                if(!this.is_verbose && response_content)
-                    System.out.println(responseLine);
-                else if(this.is_verbose)
-                    System.out.println(responseLine);
-
-            }
-
-        }catch(Exception e){
-            e.printStackTrace();
-        }
-    }
 }
